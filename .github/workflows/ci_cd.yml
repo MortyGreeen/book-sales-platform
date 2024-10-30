@@ -42,6 +42,7 @@ jobs:
 
       - name: Set up environment variables
         run: |
+          echo "CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1" >> $GITHUB_ENV
           echo "DB_NAME=test_db" >> $GITHUB_ENV
           echo "DB_USER=test_user" >> $GITHUB_ENV
           echo "DB_PASSWORD=test_password" >> $GITHUB_ENV
@@ -49,11 +50,5 @@ jobs:
           echo "DB_PORT=5432" >> $GITHUB_ENV
 
       - name: Run Django tests
-        env:
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
         run: |
           python backend_rds/manage.py test
