@@ -1,26 +1,20 @@
-name: Backend CI/CD Pipeline
+name: Deploy Backend
 
 on:
   push:
     branches:
       - main
-  pull_request:
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy Backend
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Check out the code
         uses: actions/checkout@v3
 
-      - name: Set up Docker
+      - name: Update and install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install docker.io -y
-
-      - name: Build and Deploy Backend
-        run: |
-          docker-compose down
-          docker-compose up -d --build
+          sudo apt-get remove -y containerd || true  # Удалить конфликтующий пакет
+          sudo apt-get install -y containerd.io     # Установить нужный пакет
