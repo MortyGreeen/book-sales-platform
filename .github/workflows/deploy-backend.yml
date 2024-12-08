@@ -24,7 +24,13 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ec2-key.pem ec2-user@18.193.161.41 << 'EOF'
-          cd /home/ec2-user/book-sales-platform
-          docker-compose down
-          docker-compose up -d
+          echo "Connecting to EC2 instance..."
+          cd /home/ec2-user/book-sales-platform || exit 1
+          echo "Pulling latest changes from GitHub..."
+          git pull origin main || exit 1
+          echo "Stopping existing containers..."
+          docker-compose down || exit 1
+          echo "Starting updated containers..."
+          docker-compose up -d || exit 1
+          echo "Deployment completed successfully!"
           EOF
