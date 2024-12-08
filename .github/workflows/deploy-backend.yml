@@ -6,21 +6,25 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Шаг 1: Клонирование репозитория
-      - name: Check out the code
+      # Шаг 1: Клонируйте репозиторий
+      - name: Check out the repository
         uses: actions/checkout@v3
 
-      # Шаг 2: Подключение к EC2 и деплой
+      # Шаг 2: Создайте файл с ключом
+      - name: Create SSH key file
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > ec2-key.pem
+          chmod 600 ec2-key.pem
+
+      # Шаг 3: Подключитесь к EC2 и выполните деплой
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i "${{ secrets.EC2_SSH_KEY }}" ec2-user@18.193.161.41 << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ec2-key.pem ec2-user@18.193.161.41 << 'EOF'
           cd /home/ec2-user/book-sales-platform
           docker-compose down
           docker-compose up -d
           EOF
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
