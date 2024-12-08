@@ -3,18 +3,40 @@ name: Deploy Backend
 on:
   push:
     branches:
-      - main
+      - main  # Пайплайн запускается при пуше в ветку main
 
 jobs:
   build-and-deploy:
+    name: Build and Deploy Backend
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out the code
-        uses: actions/checkout@v3
+    # Шаг 1: Проверка кода
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Update and install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get remove -y containerd || true  # Удалить конфликтующий пакет
-          sudo apt-get install -y containerd.io     # Установить нужный пакет
+    # Шаг 2: Установка Docker и docker-compose (если нужно)
+    - name: Install Docker
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker.io docker-compose
+
+    # Шаг 3: Подготовка SSH-ключа для подключения к EC2
+    - name: Configure SSH Key
+      run: |
+        echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+        chmod 600 private_key.pem
+
+    # Шаг 4: Деплой на EC2
+    - name: Deploy Backend to EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@18.193.161.41 << EOF
+        cd /home/ec2-user/book-sales-platform
+        git pull origin main  # Обновить код из репозитория
+        docker-compose down   # Остановить текущие контейнеры
+        docker-compose up -d  # Запустить обновленные контейнеры
+        EOF
+
+    # Шаг 5: Удаление временного ключа
+    - name: Clean up SSH Key
+      run: rm -f private_key.pem
