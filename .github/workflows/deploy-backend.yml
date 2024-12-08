@@ -17,13 +17,13 @@ jobs:
       # Шаг 2: Создайте файл с ключом
       - name: Create SSH key file
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > ec2-key.pem
-          chmod 600 ec2-key.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" > EC2Tutorial.pem
+          chmod 600 EC2Tutorial.pem
 
       # Шаг 3: Подключитесь к EC2 и выполните деплой
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ec2-key.pem ec2-user@18.193.161.41 << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i EC2Tutorial.pem ec2-user@18.193.161.41 << 'EOF'
           echo "Connecting to EC2 instance..."
           cd /home/ec2-user/book-sales-platform || exit 1
           echo "Pulling latest changes from GitHub..."
