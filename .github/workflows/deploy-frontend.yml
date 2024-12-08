@@ -29,7 +29,10 @@ jobs:
     # Шаг 3: Копирование фронтенда в S3
     - name: Deploy Frontend to S3
       run: |
-        aws s3 sync ./frontend/templates s3://book-sales-platform-frontend --delete
+        # Сначала исключаем config.json из удаления
+        aws s3 sync ./frontend/templates s3://book-sales-platform-frontend --delete --exclude "config.json"
+        # После этого отдельно синхронизируем config.json, чтобы он точно оставался актуальным
+        aws s3 cp ./frontend/config.json s3://book-sales-platform-frontend/config.json
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
