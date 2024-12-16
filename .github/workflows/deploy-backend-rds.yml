@@ -1,44 +1,30 @@
-name: Deploy RDS Backend
+name: Debug EC2 SSH Connection
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch: # Запускается вручную для тестирования
 
 jobs:
-  deploy:
+  debug-ssh:
     runs-on: ubuntu-latest
 
     steps:
       # Шаг 1: Клонируйте репозиторий
-      - name: Check out the repository
+      - name: Check out repository
         uses: actions/checkout@v3
 
-      # Шаг 2: Авторизация в ECR
-      - name: Authenticate with ECR
+      # Шаг 2: Сохраните SSH-ключ из секрета в файл
+      - name: Save EC2 SSH Key
         run: |
-          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 183631324733.dkr.ecr.eu-central-1.amazonaws.com
+          echo "${{ secrets.EC2_SSH_KEY }}" > debug.pem
+          chmod 600 debug.pem
 
-      # Шаг 3: Создайте файл с ключом
-      - name: Create SSH key file
-        run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > EC2Tutorial.pem
-          chmod 600 EC2Tutorial.pem
+      # Шаг 3: Проверьте содержимое ключа
+      - name: Verify SSH Key
+        run: cat debug.pem
 
-      # Шаг 4: Подключитесь к EC2 и обновите контейнер
-      - name: Deploy RDS Backend on EC2
+      # Шаг 4: Попробуйте подключиться к инстансу
+      - name: Test SSH Connection
         run: |
-          ssh -o StrictHostKeyChecking=no -i EC2Tutorial.pem ec2-user@18.193.161.41 << 'EOF'
-          echo "Connecting to EC2 instance..."
-          cd /home/ec2-user/book-sales-platform || exit 1
-          echo "Stopping existing containers..."
-          docker-compose down || exit 1
-          echo "Pulling the latest image from ECR..."
-          docker pull 183631324733.dkr.ecr.eu-central-1.amazonaws.com/rds-backend:latest || exit 1
-          echo "Starting RDS container with updated image..."
-          docker-compose up -d backend || exit 1
-          echo "RDS Deployment completed successfully!"
+          ssh -o StrictHostKeyChecking=no -i debug.pem ec2-user@18.193.161.41 << 'EOF'
+          echo "Successfully connected to EC2 instance!"
           EOF
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
