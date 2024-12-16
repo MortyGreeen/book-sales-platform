@@ -1,4 +1,4 @@
-name: Deploy Backend RDS
+name: Deploy RDS Backend
 
 on:
   push:
@@ -10,39 +10,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Шаг 1: Клонирование репозитория
+      # Шаг 1: Клонируйте репозиторий
       - name: Check out the repository
         uses: actions/checkout@v3
 
-      # Шаг 2: Создайте файл с ключом
+      # Шаг 2: Авторизация в ECR
+      - name: Authenticate with ECR
+        run: |
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 183631324733.dkr.ecr.eu-central-1.amazonaws.com
+
+      # Шаг 3: Создайте файл с ключом
       - name: Create SSH key file
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > EC2Tutorial.pem
           chmod 600 EC2Tutorial.pem
-          ls -l EC2Tutorial.pem
 
-      # Шаг 3: Настройка AWS CLI
-      - name: Configure AWS CLI
-        run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set default.region eu-central-1
-
-      # Шаг 4: Вход в AWS ECR
-      - name: Login to Amazon ECR
-        id: login-ecr
-        run: |
-          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 183631324733.dkr.ecr.eu-central-1.amazonaws.com
-
-      # Шаг 5: Деплой на EC2
-      - name: Deploy to EC2
+      # Шаг 4: Подключитесь к EC2 и обновите контейнер
+      - name: Deploy RDS Backend on EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i EC2Tutorial.pem ec2-user@18.193.161.41 << 'EOF'
           echo "Connecting to EC2 instance..."
           cd /home/ec2-user/book-sales-platform || exit 1
           echo "Stopping existing containers..."
           docker-compose down || exit 1
-          echo "Starting RDS container..."
+          echo "Pulling the latest image from ECR..."
+          docker pull 183631324733.dkr.ecr.eu-central-1.amazonaws.com/rds-backend:latest || exit 1
+          echo "Starting RDS container with updated image..."
           docker-compose up -d backend || exit 1
           echo "RDS Deployment completed successfully!"
           EOF
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
