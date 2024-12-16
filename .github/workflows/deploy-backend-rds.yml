@@ -1,0 +1,37 @@
+name: Deploy Backend RDS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Шаг 1: Клонирование репозитория
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      # Шаг 2: Вход в AWS ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        run: |
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 183631324733.dkr.ecr.eu-central-1.amazonaws.com
+
+      # Шаг 3: Загрузка образа из ECR и деплой
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i EC2Tutorial.pem ec2-user@18.193.161.41 << 'EOF'
+          echo "Connecting to EC2 instance..."
+          cd /home/ec2-user/book-sales-platform || exit 1
+          echo "Stopping existing containers..."
+          docker-compose down || exit 1
+          echo "Starting RDS container..."
+          docker-compose up -d backend || exit 1
+          echo "RDS Deployment completed successfully!"
+          EOF
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
