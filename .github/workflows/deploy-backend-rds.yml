@@ -14,13 +14,20 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v3
 
-      # Шаг 2: Вход в AWS ECR
+      # Шаг 2: Настройка AWS CLI
+      - name: Configure AWS CLI
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region eu-central-1
+
+      # Шаг 3: Вход в AWS ECR
       - name: Login to Amazon ECR
         id: login-ecr
         run: |
           aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 183631324733.dkr.ecr.eu-central-1.amazonaws.com
 
-      # Шаг 3: Загрузка образа из ECR и деплой
+      # Шаг 4: Деплой на EC2
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i EC2Tutorial.pem ec2-user@18.193.161.41 << 'EOF'
