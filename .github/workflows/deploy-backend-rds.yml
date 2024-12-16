@@ -1,30 +1,41 @@
-name: Debug EC2 SSH Connection
+name: Deploy Backend to EC2
 
 on:
-  workflow_dispatch: # Запускается вручную для тестирования
+  push:
+    branches:
+      - main  # Запуск при пуше в ветку main
 
 jobs:
-  debug-ssh:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Шаг 1: Клонируйте репозиторий
-      - name: Check out repository
+      # Шаг 1: Клонируем репозиторий
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Шаг 2: Сохраните SSH-ключ из секрета в файл
-      - name: Save EC2 SSH Key
+      # Шаг 2: Создаем файл с SSH-ключом
+      - name: Create SSH key file
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > debug.pem
-          chmod 600 debug.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" > EC2Tutorial.pem
+          chmod 600 EC2Tutorial.pem
 
-      # Шаг 3: Проверьте содержимое ключа
-      - name: Verify SSH Key
-        run: cat debug.pem
-
-      # Шаг 4: Попробуйте подключиться к инстансу
-      - name: Test SSH Connection
+      # Шаг 3: Авторизация в ECR
+      - name: Authenticate to ECR
         run: |
-          ssh -o StrictHostKeyChecking=no -i debug.pem ec2-user@18.193.161.41 << 'EOF'
-          echo "Successfully connected to EC2 instance!"
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 183631324733.dkr.ecr.eu-central-1.amazonaws.com
+
+      # Шаг 4: Подключение по SSH и деплой бэкенда
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i EC2Tutorial.pem ec2-user@18.193.161.41 << 'EOF'
+          echo "Connecting to EC2 instance..."
+          cd /home/ec2-user/book-sales-platform || exit 1
+          
+          echo "Pulling latest images from ECR..."
+          docker-compose down || exit 1
+          docker-compose pull backend || exit 1
+          docker-compose up -d backend || exit 1
+
+          echo "Backend deployment completed successfully!"
           EOF
