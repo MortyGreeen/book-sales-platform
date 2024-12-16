@@ -67,12 +67,13 @@ services:
 
 volumes:
   pgdata:
-<<<<<<< HEAD
-=======
 
 
 
 
 
 
->>>>>>> 4dc0a3c (Updated docker-compose.yml for ECR integration)
+
+
+
+
